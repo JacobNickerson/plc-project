@@ -112,6 +112,8 @@ public final class Lexer {
                     continue;
                 }
                 return chars.emit(Token.Type.DECIMAL);
+            } else {
+                throw new ParseException("Leading zeroes are invalid", chars.index);
             }
 
             // return simple integer zero
