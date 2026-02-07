@@ -65,11 +65,31 @@ public final class Lexer {
         // * Can start with an optional + or - sign followed by digits
         //      * If there were no digits after the sign, it would be an operator
         // * Can start with only digits
-        if (peek("[\\+\\-]", "[0-9]") || peek("[0-9]")) {
+        else if (peek("[\\+\\-]", "[0-9]") || peek("[0-9]")) {
             return lexNumber();
         }
 
-        throw new ParseException("Cannot determine token type", chars.index);
+        // Character:
+        // Must be enclosed in (and thus start with) single quotes
+        else if (peek("'")) {
+            return lexCharacter();
+        }
+
+        // String:
+        // Must be enclosed in (and thus start with) double quotes
+        else if (peek("\"")) {
+            return lexString();
+        }
+
+        // Operator:
+        // Match any other character, except for whitespace
+        // <=, >=, !=, == are special cases and are grouped together
+        else if (peek("\\S+")) {
+            return lexOperator();
+        }
+        else {
+            throw new ParseException("Cannot determine token type", chars.index);
+        }
     }
 
     public Token lexIdentifier() {
@@ -116,19 +136,46 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        throw new UnsupportedOperationException(); //TODO
+        match("'");
+        if (peek("\\\\")) {
+            lexEscape();
+        } else if (!match("[^']")) {
+            throw new ParseException("Empty character", chars.index);
+        }
+        if (!match("'")) {
+            throw new ParseException("Unterminated character", chars.index);
+        }
+        return chars.emit(Token.Type.CHARACTER);
     }
 
     public Token lexString() {
-        throw new UnsupportedOperationException(); //TODO
+        match("\"");
+        while (!peek("[\"]")) {
+            if (peek("\\\\")) {
+                lexEscape();
+            } else if (match("\n")){
+                throw new ParseException("String literal cannot span multiple lines", chars.index);
+            } else if (!match(".")) {
+                throw new ParseException("Unterminated string literal", chars.index);
+            }
+        }
+        match("\"");
+        return chars.emit(Token.Type.STRING);
     }
 
     public void lexEscape() {
-        throw new UnsupportedOperationException(); //TODO
+        if (!match("\\\\", "[bnrt'\"\\\\]")) {
+            throw new ParseException("Invalid escape sequence", chars.index);
+        }
     }
 
     public Token lexOperator() {
-        throw new UnsupportedOperationException(); //TODO
+        if (peek("[!=<>]", "=") ) {
+            match("[!=<>]", "=");
+        } else if (!match("\\S+")) {
+            throw new ParseException("White space in char", chars.index);
+        }
+        return chars.emit(Token.Type.OPERATOR);
     }
 
     /**
