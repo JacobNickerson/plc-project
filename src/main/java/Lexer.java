@@ -139,7 +139,7 @@ public final class Lexer {
         match("'");
         if (peek("\\\\")) {
             lexEscape();
-        } else if (!match("[^']")) {
+        } else if (!match("[^'\n]")) {
             throw new ParseException("Empty character", chars.index);
         }
         if (!match("'")) {
