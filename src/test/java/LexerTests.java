@@ -23,6 +23,7 @@ public class LexerTests {
                 Arguments.of("Alphabetic", "getName", true),
                 Arguments.of("Alphanumeric", "thelegend27", true),
                 Arguments.of("Alphanumeric with hyphen/underscore", "the_legend-27", true),
+                Arguments.of("Single Character", "a", false),
                 Arguments.of("Leading Hyphen", "-five", false),
                 Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false)
         );
@@ -41,7 +42,10 @@ public class LexerTests {
                 Arguments.of("Negative", "-1", true),
                 Arguments.of("Explicit Positive", "+123456", true),
 
-                Arguments.of("Leading Zero", "01", false)
+                Arguments.of("Comma Separate", "123,456", false),  // NOTE: Should this be possible?
+                Arguments.of("Leading Zero", "01", false),
+                Arguments.of("Negative Zero", "-0", false),
+                Arguments.of("Explicit Positive Zero", "+0", false)
         );
     }
 
@@ -96,6 +100,8 @@ public class LexerTests {
 
                 Arguments.of("Empty", "''", false),
                 Arguments.of("Single quote", "'''", false),
+                Arguments.of("Unterminated", "'a", false),
+                Arguments.of("Unterminated by Newline", "'\n'", false),
                 Arguments.of("Multiple", "'abc'", false)
         );
     }
@@ -116,6 +122,7 @@ public class LexerTests {
                 Arguments.of("Valid Escape Characters", "\"123 \\\\ \\b \\n \\r \\t \\' \\\" abc\"", true),
 
                 Arguments.of("Unterminated", "\"Hello, world!", false),
+                Arguments.of("Unterminated by Newline", "\"Hello\nworld!", false),
                 Arguments.of("Not Opened", "Hello, world!\"", false),
                 Arguments.of("No Quotes", "Hello, world!", false),
                 Arguments.of("Extra Opening Quote", "\"\"Hello, world!\"", false),
@@ -146,6 +153,8 @@ public class LexerTests {
                 Arguments.of("Less Than", "<", true),
                 Arguments.of("Greater Than", ">", true),
                 Arguments.of("Single Equal", "=", true),
+                Arguments.of("Money", "$", true),
+                Arguments.of("Plus", "+", true),
 
                 Arguments.of("Space", " ", false),
                 Arguments.of("Tab", "\t", false),
@@ -174,6 +183,19 @@ public class LexerTests {
                         new Token(Token.Type.STRING, "\"Hello, World!\"", 6),
                         new Token(Token.Type.OPERATOR, ")", 21),
                         new Token(Token.Type.OPERATOR, ";", 22)
+                )),
+                Arguments.of("Multiple Decimals", "1.2.3", Arrays.asList(
+                        new Token(Token.Type.DECIMAL, "1.2", 0),
+                        new Token(Token.Type.OPERATOR, ".", 3),
+                        new Token(Token.Type.INTEGER, "3", 4)
+                )),
+                Arguments.of("Equals Combination", "!====", Arrays.asList(
+                        new Token(Token.Type.OPERATOR, "!=", 0),
+                        new Token(Token.Type.OPERATOR, "==", 2),
+                        new Token(Token.Type.OPERATOR, "=", 4)
+                )),
+                Arguments.of("Weird Quotes", "\"'\\\"string\\\"'\"", List.of(
+                        new Token(Token.Type.STRING, "\"'\\\"string\\\"'\"", 0)
                 ))
         );
     }
@@ -183,6 +205,9 @@ public class LexerTests {
         ParseException exception = Assertions.assertThrows(ParseException.class,
                 () -> new Lexer("\"unterminated").lex());
         Assertions.assertEquals(13, exception.getIndex());
+        ParseException exception2 = Assertions.assertThrows(ParseException.class,
+                () -> new Lexer("\'u").lex());
+        Assertions.assertEquals(2, exception2.getIndex());
     }
 
     /**
