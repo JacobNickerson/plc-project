@@ -112,8 +112,6 @@ public final class Lexer {
                     continue;
                 }
                 return chars.emit(Token.Type.DECIMAL);
-            } else {
-                throw new ParseException("Leading zeroes are invalid", chars.index);
             }
 
             // return simple integer zero
@@ -172,10 +170,8 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
-        if (peek("[!=<>]", "=") ) {
-            match("[!=<>]", "=");
-        } else if (!match("\\S+")) {
-            throw new ParseException("White space in char", chars.index);
+        if (!match("[!=<>]", "=")) {
+            match(".");
         }
         return chars.emit(Token.Type.OPERATOR);
     }
