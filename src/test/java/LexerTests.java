@@ -22,6 +22,7 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Alphabetic", "getName", true),
                 Arguments.of("Alphanumeric", "thelegend27", true),
+                Arguments.of("Alphanumeric with hyphen/underscore", "the_legend-27", true),
                 Arguments.of("Leading Hyphen", "-five", false),
                 Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false)
         );
@@ -38,6 +39,8 @@ public class LexerTests {
                 Arguments.of("Single Digit", "1", true),
                 Arguments.of("Multiple Digits", "12345", true),
                 Arguments.of("Negative", "-1", true),
+                Arguments.of("Explicit Positive", "+123456", true),
+
                 Arguments.of("Leading Zero", "01", false)
         );
     }
@@ -50,12 +53,26 @@ public class LexerTests {
 
     private static Stream<Arguments> testDecimal() {
         return Stream.of(
-                Arguments.of("Multiple Digits", "123.456", true),
-                Arguments.of("Negative Decimal", "-1.0", true),
-                Arguments.of("No Leading Digits", "0.5", true),
-                Arguments.of("Trailing Decimal", "1.", false),
-                Arguments.of("Leading Decimal", ".5", false),
-                Arguments.of("Leading Zero Right-hand Side", "01.0", false)
+                Arguments.of("Multiple Digit Float", "123.456", true),
+                Arguments.of("Explicit Positive Integer", "+1.0", true),
+                Arguments.of("Positive Float", "2.5", true),
+                Arguments.of("Negative Float", "-2.5", true),
+                Arguments.of("Positive Multiple Digits", "12.57", true),
+                Arguments.of("Negative Multiple Digits", "-12.57", true),
+                Arguments.of("Positive Leading Zeros in Mantissa", "12.07", true),
+                Arguments.of("Negative Leading Zeros in Mantissa", "-12.07", true),
+                Arguments.of("Positive Leading Zero", "0.07", true),
+                Arguments.of("Negative Leading Zero", "-0.07", true),
+
+                Arguments.of("Float Without Mantissa", "10.", false),
+                Arguments.of("No Integer", ".5", false),
+                Arguments.of("Leading Zero", "01.5", false),
+                Arguments.of("Characters in Integer", "10a1.5", false),
+                Arguments.of("Characters in Mantissa", "101.5a7", false),
+                Arguments.of("A String for Some Reason", "Hello world!", false),
+                Arguments.of("Two Decimals", "10.70.10", false),
+                Arguments.of("Symbols in Integer", "1&70.10", false),
+                Arguments.of("Symbols in Mantissa", "170.1^0", false)
         );
     }
 
@@ -67,10 +84,19 @@ public class LexerTests {
 
     private static Stream<Arguments> testCharacter() {
         return Stream.of(
-                Arguments.of("Alphabetic", "\'c\'", true),
-                Arguments.of("Newline Escape", "\'\\n\'", true),
-                Arguments.of("Empty", "\'\'", false),
-                Arguments.of("Multiple", "\'abc\'", false)
+                Arguments.of("Alphabetic", "'c'", true),
+                Arguments.of("Newline Escape", "'\\n'", true),
+                Arguments.of("Tab Escape", "'\\t'", true),
+                Arguments.of("b Escape", "'\\b'", true),
+                Arguments.of("Return Escape", "'\\r'", true),
+                Arguments.of("Double Quote Escape", "'\\\"'", true),
+                Arguments.of("Single Quote Escape", "'\\''", true),
+                Arguments.of("Numeric", "'5'", true),
+                Arguments.of("Symbol", "'&'", true),
+
+                Arguments.of("Empty", "''", false),
+                Arguments.of("Single quote", "'''", false),
+                Arguments.of("Multiple", "'abc'", false)
         );
     }
 
@@ -83,10 +109,22 @@ public class LexerTests {
     private static Stream<Arguments> testString() {
         return Stream.of(
                 Arguments.of("Empty", "\"\"", true),
-                Arguments.of("Alphabetic", "\"abc\"", true),
-                Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
-                Arguments.of("Unterminated", "\"unterminated", false),
-                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false)
+                Arguments.of("Alpha",   "\"Hello\"", true),
+                Arguments.of("Numeric", "\"123456\"", true),
+                Arguments.of("Symbols", "\"!@#$%^&*()\"", true),
+                Arguments.of("Alphanumeric", "\"Hello, world997!\"", true),
+                Arguments.of("Valid Escape Characters", "\"123 \\\\ \\b \\n \\r \\t \\' \\\" abc\"", true),
+
+                Arguments.of("Unterminated", "\"Hello, world!", false),
+                Arguments.of("Not Opened", "Hello, world!\"", false),
+                Arguments.of("No Quotes", "Hello, world!", false),
+                Arguments.of("Extra Opening Quote", "\"\"Hello, world!\"", false),
+                Arguments.of("Extra Closing Quote", "\"Hello, world!\"\"", false),
+                Arguments.of("Characters before quote", "a\"Hello world!\"", false),
+                Arguments.of("Characters after quote", "\"Hello world!\"a", false),
+                Arguments.of("Invalid Escape", "\"hello\\world\"", false),
+                Arguments.of("Multi-line string", "\"hello\nworld\"", false)
+
         );
     }
 
@@ -100,9 +138,18 @@ public class LexerTests {
     private static Stream<Arguments> testOperator() {
         return Stream.of(
                 Arguments.of("Character", "(", true),
-                Arguments.of("Comparison", "!=", true),
+                Arguments.of("Not Equal", "!=", true),
+                Arguments.of("Less Than or Equal", "<=", true),
+                Arguments.of("Greater Than or Equal", ">=", true),
+                Arguments.of("Equal", "==", true),
+                Arguments.of("Bang", "!", true),
+                Arguments.of("Less Than", "<", true),
+                Arguments.of("Greater Than", ">", true),
+                Arguments.of("Single Equal", "=", true),
+
                 Arguments.of("Space", " ", false),
-                Arguments.of("Tab", "\t", false)
+                Arguments.of("Tab", "\t", false),
+                Arguments.of("Newline", "\n", false)
         );
     }
 
